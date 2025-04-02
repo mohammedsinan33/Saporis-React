@@ -12,7 +12,7 @@ const Analysis = () => {
   const [analysisData, setAnalysisData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [nutritionData, setNutritionData] = useState([]);
-  const [weeklyData, setWeeklyData] = useState({ values: [], calorieGoal: 2000 });
+  const [weeklyData, setWeeklyData] = useState({ values: [], calorieGoal:0 });
   const [summary, setSummary] = useState('');
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
 
@@ -67,15 +67,15 @@ const Analysis = () => {
         if (!userEmail) {
           // Default data handling remains the same
           setAnalysisData([
-            { type: 'Calories', value: 2500, trend: '+5%' },
-            { type: 'Protein', value: '75g', trend: '+12%' },
-            { type: 'Carbs', value: '310g', trend: '-3%' },
-            { type: 'Fat', value: '65g', trend: '+2%' }
+            { type: 'Calories', value: 0, trend: '+5%' },
+            { type: 'Protein', value: '0g', trend: '+12%' },
+            { type: 'Carbs', value: '0g', trend: '-3%' },
+            { type: 'Fat', value: '0g', trend: '+2%' }
           ]);
           setNutritionData([
-            { label: 'Protein', value: 25, color: '#9333EA' },
-            { label: 'Carbs', value: 45, color: '#7C3AED' },
-            { label: 'Fat', value: 30, color: '#6366F1' }
+            { label: 'Protein', value: 33, color: '#9333EA' },
+            { label: 'Carbs', value: 33, color: '#7C3AED' },
+            { label: 'Fat', value: 34, color: '#6366F1' }
           ]);
           setWeeklyData({
             values: [2100, 2300, 1950, 2400, 2200, 1900, 2500]

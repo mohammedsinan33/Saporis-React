@@ -10,8 +10,10 @@ import GoalForm from "./GoalForm";
 import HeightForm from "./HeightForm";
 import WeightForm from "./WeightForm";
 import ActivityLevelForm from "./ActivityLevelForm";
+import LoginPopup from './Login';
 
 const Signup = () => {
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const isGoogleSignup = location.state?.isGoogleSignup;
@@ -379,6 +381,11 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 text-white">
+      {/* Login Popup */}
+      <LoginPopup 
+        isOpen={showLoginPopup} 
+        onClose={() => setShowLoginPopup(false)}
+      />
       <div className="w-screen mx-auto p-10 flex flex-col md:flex-row items-center">
         {/* Left side */}
         <div className="md:w-1/2 mb-12 px-6 md:mb-0 md:pr-12">
@@ -399,8 +406,8 @@ const Signup = () => {
             </p>
             <div className="pt-4">
               <button 
-                onClick={() => navigate('/login')}
-                className="px-6 py-3 border border-white/20 rounded-lg hover:bg-white/10 transition-colors"
+                onClick={() => setShowLoginPopup(true)}
+                className="px-6 py-3 border border-white/20 rounded-lg hover:bg-white/10 transition-colors bg-gradient-to-br from-purple-600 to-violet-600"
               >
                 Already have an account? Sign in
               </button>

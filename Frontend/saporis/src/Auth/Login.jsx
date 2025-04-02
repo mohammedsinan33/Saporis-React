@@ -208,13 +208,13 @@ const LoginPopup = ({ isOpen, onClose }) => {
               </form>
               <div className="mt-6 text-center">
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-transparent text-white/70">Or continue with</span>
+                <span className="px-2 bg-transparent text-white/70">Or</span>
               </div>
                 <div className="pt-2">
                   <button
                     type="button"
                     onClick={handleGoogleSignIn}
-                    className="w-full py-3 px-4 bg-white hover:bg-gray-50 rounded-lg flex items-center justify-center space-x-3 text-gray-700 font-medium border border-gray-200 hover:shadow-lg transition-all"
+                    className="w-full py-3 px-4 bg-white hover:bg-gray-50 rounded-lg flex items-center justify-center space-x-3 text-white font-medium border border-gray-200 hover:shadow-lg transition-all"
                   >
                     <svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
                       <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
@@ -234,7 +234,7 @@ const LoginPopup = ({ isOpen, onClose }) => {
                   Don't have an account?{" "}
                   <button
                     type="button"
-                    className="text-purple-400 hover:text-purple-300 transition-colors bg-transparent border-none font-medium"
+                    className="text-white hover:text-gray transition-colors bg-gradient-to-br from-purple-600 to-violet-600 border-none font-medium"
                     onClick={() => {
                       onClose(); // Close the login popup
                       navigate('/signup'); // Navigate to signup page
