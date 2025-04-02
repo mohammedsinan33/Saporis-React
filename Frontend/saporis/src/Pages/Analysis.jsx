@@ -13,6 +13,52 @@ const Analysis = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [nutritionData, setNutritionData] = useState([]);
   const [weeklyData, setWeeklyData] = useState({ values: [], calorieGoal: 2000 });
+  const [summary, setSummary] = useState('');
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+
+  const generateSummary = async (data, goal) => {
+    try {
+      setIsSummaryLoading(true);
+      
+      // Format the data for the backend
+      const summaryData = {
+        current_stats: {
+          calories: data.find(item => item.type === 'Calories')?.value || 0,
+          protein: data.find(item => item.type === 'Protein')?.value.replace('g', '') || 0,
+          carbs: data.find(item => item.type === 'Carbs')?.value.replace('g', '') || 0,
+          fat: data.find(item => item.type === 'Fat')?.value.replace('g', '') || 0
+        },
+        calorie_goal: goal,
+        weekly_trends: weeklyData.values,
+        trends: {
+          calories: data.find(item => item.type === 'Calories')?.trend || '0%',
+          protein: data.find(item => item.type === 'Protein')?.trend || '0%',
+          carbs: data.find(item => item.type === 'Carbs')?.trend || '0%',
+          fat: data.find(item => item.type === 'Fat')?.trend || '0%'
+        }
+      };
+
+      const response = await fetch('http://127.0.0.1:8000/get_nutrition_summary/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(summaryData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate summary');
+      }
+
+      const result = await response.json();
+      setSummary(result.summary);
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      setSummary('Unable to generate summary at this time. Please try again later.');
+    } finally {
+      setIsSummaryLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -139,6 +185,9 @@ const Analysis = () => {
           calorieGoal: calorieGoal
         });
 
+        // After setting the analysis data, generate the summary
+        generateSummary(analysisData, calorieGoal);
+
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching analysis data:', error);
@@ -222,16 +271,54 @@ const Analysis = () => {
                 </div>
               </motion.div>
 
-              {/* Timeline Section */}
+              {/* Summary Section */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
                 className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10"
               >
-                <h3 className="text-lg font-medium mb-4 text-purple-300">Monthly Progress</h3>
-                <div className="h-72 bg-white/5 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-8 h-8 text-white/30" />
+                <h3 className="text-lg font-medium mb-4 text-purple-300">Your Nutrition Summary</h3>
+                <div className="bg-white/5 rounded-lg p-6">
+                  {isSummaryLoading ? (
+                    <div className="flex items-center justify-center h-60">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500"></div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-start space-x-3">
+                        <TrendingUp className="w-6 h-6 text-purple-400 mt-1" />
+                        <div className="flex-1">
+                          {summary.split('\n\n').map((section, idx) => (
+                            <React.Fragment key={idx}>
+                              {section.includes('•') ? (
+                                <ul className="list-none space-y-3 mt-3">
+                                  {section.split('\n').map((item, itemIdx) => (
+                                    item.trim().startsWith('•') && (
+                                      <li key={itemIdx} className="flex items-start space-x-2">
+                                        <span className="text-purple-400 mt-1">•</span>
+                                        <span className="text-white/90 flex-1">
+                                          {item.replace('•', '').trim()}
+                                        </span>
+                                      </li>
+                                    )
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className={`text-white/90 leading-relaxed ${idx > 0 ? 'mt-4' : ''}`}>
+                                  {section.endsWith(':') ? (
+                                    <strong className="text-purple-300">{section}</strong>
+                                  ) : (
+                                    section
+                                  )}
+                                </p>
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             </div>

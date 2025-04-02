@@ -1,14 +1,13 @@
-from fastapi import FastAPI, UploadFile, File, Body, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
+from typing import List, Optional
 import os
 import shutil
-from typing import Dict
 from llm import analyze_food_consumption, api_key
 from prompts import prompt1
 from pipeline import get_calorie_recommendations
+import re
 
 app = FastAPI()
 
@@ -31,6 +30,49 @@ app.add_middleware(
 class UserInput(BaseModel):
     user_input: str
     calorie_goal: int
+
+class NutritionStats(BaseModel):
+    calories: float
+    protein: float
+    carbs: float
+    fat: float
+
+class NutritionTrends(BaseModel):
+    calories: str
+    protein: str
+    carbs: str
+    fat: str
+
+class NutritionSummaryInput(BaseModel):
+    current_stats: NutritionStats
+    calorie_goal: int
+    weekly_trends: List[float]
+    trends: NutritionTrends
+
+def clean_markdown(text: str) -> str:
+    # Remove code blocks
+    text = re.sub(r'```[\s\S]*?```', '', text)
+    
+    # Convert numbered lists (1. 2. etc) to bullet points
+    text = re.sub(r'^\d+\.\s*', '• ', text, flags=re.MULTILINE)
+    
+    # Convert bullet points to proper sentences
+    text = re.sub(r'^[\s]*[-*][\s]*', '• ', text, flags=re.MULTILINE)
+    
+    # Convert headers to bold text and add proper spacing
+    text = re.sub(r'^#+\s*(.*?)$', r'\1:', text, flags=re.MULTILINE)
+    
+    # Remove any remaining markdown syntax
+    text = re.sub(r'[_*`]+', '', text)
+    
+    # Ensure bullet points are on new lines
+    text = re.sub(r'(• [^\n]+)(?=\s*•)', r'\1\n', text)
+    
+    # Clean up extra whitespace but preserve intentional line breaks
+    text = re.sub(r'\n\s*\n', '\n\n', text)
+    text = text.strip()
+    
+    return text
 
 @app.get("/health")
 async def health_check():
@@ -94,3 +136,38 @@ async def get_calorie_recommendations_from_user_input(data: UserInput):
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating recommendations: {e}")
+
+@app.post("/get_nutrition_summary/")
+async def get_nutrition_summary(data: NutritionSummaryInput):
+    try:
+        # Create a prompt for Gemini
+        prompt = f"""
+        Analyze the following nutrition data and provide a concise, informative summary:
+
+        Current Stats:
+        - Calories: {data.current_stats.calories} (Goal: {data.calorie_goal} calories)
+        - Protein: {data.current_stats.protein}g ({data.trends.protein} change)
+        - Carbs: {data.current_stats.carbs}g ({data.trends.carbs} change)
+        - Fat: {data.current_stats.fat}g ({data.trends.fat} change)
+
+        Weekly Calorie Trends:
+        {', '.join(str(cal) for cal in data.weekly_trends)}
+
+        Please provide:
+        1. An assessment of current macronutrient balance
+        2. Comparison with calorie goals
+        3. Notable trends
+        4. Brief recommendations for improvement
+        
+        Keep the summary concise and actionable.
+        """
+        
+        # Get response from Gemini and clean it
+        summary = analyze_food_consumption(None, api_key, prompt)
+        cleaned_summary = clean_markdown(summary)
+        
+        return {
+            "summary": cleaned_summary
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating summary: {str(e)}")
