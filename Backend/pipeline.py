@@ -5,51 +5,61 @@ from llm import image_file_path as image_path
 
 def get_calorie_recommendations(api_key: str, answer_array: str) -> dict:
     """
-    Analyzes an image of food, gets user input for consumption,
-    calculates calories, and recommends food items to reach a calorie goal.
+    Analyzes food consumption data and provides personalized recommendations based on calorie goals.
 
     Args:
-        image_path (str): Path to the image file.
         api_key (str): API key for LLM.
+        answer_array (str): User's answers about food consumption including their calorie goal.
 
     Returns:
-        dict: Dictionary containing calorie recommendations, protein, carbs and fat information
+        dict: Dictionary containing calorie recommendations and nutritional data
     """
 
-    # Construct prompt for calorie calculation and recommendations.
-    prompt2 = f"""You are a nutrition expert. Given the following data about food consumption, calculate the estimated calorie intake.
+    # Extract calorie goal from the input if present
+    calorie_goal = None
+    for line in answer_array.split('\n'):
+        if "Daily Calorie Goal:" in line or "Calorie Goal:" in line:
+            try:
+                calorie_goal = int(''.join(filter(str.isdigit, line)))
+            except ValueError:
+                pass
+
+    # Construct prompt for calorie calculation and recommendations
+    prompt2 = f"""You are a nutrition expert. Given the following data about food consumption and the user's daily calorie goal, provide personalized recommendations.
 
 Data: {str(answer_array)}
 
-1. Provide an estimate of the total calories consumed from the given data.
+1. Calculate the total calories consumed from the given food items.
 2. Show the detailed calculation of these calories.
-3. Calculate the remaining calories needed to reach the calorie goal.
-4. Calculate the total protein (in grams), total carbohydrates (in grams) and total fat (in grams) in the consumed food items.
-5. IMPORTANT: You MUST place the nutritional summary within triple quotes (''') in this EXACT format without ANY additional characters:
+3. Calculate how many calories are remaining to reach the daily calorie goal of {calorie_goal if calorie_goal else 'specified'} calories.
+4. Calculate the total protein (in grams), total carbohydrates (in grams) and total fat (in grams).
+5. IMPORTANT: Place the nutritional summary within triple quotes (''') in this EXACT format:
    '''
    calories: [total calories]
    protein: [total protein in grams]
    carbs: [total carbs in grams]
    fat: [total fat in grams]
+   remaining: [remaining calories to goal]
    '''
-6. Recommend food items that can help the user reach their calorie goal, along with the approximate calorie value of each recommended food item. The food items should be Indian food items.
-7. Only give me the number of calories, the calculation of the consumed calories, the nutritional summary in the specified format, and the recommended food items with their calorie values.
-8. CRITICAL: Make sure to include the nutritional summary in the exact format specified above using triple quotes (''') not backticks.
+6. Based on the remaining calories, recommend specific Indian food items that would help the user reach their calorie goal while maintaining a balanced diet. Include portion sizes and approximate calorie values.
+7. Format your response in this order:
+   - Calorie calculation with breakdown
+   - Nutritional summary (in triple quotes)
+   - Specific food recommendations with portion sizes and calories
+8. Keep recommendations practical and aligned with the user's calorie goal.
 """
 
-    # Send prompt to LLM and get final calculation with recommendations.
+    # Send prompt to LLM and get response
     llm_response = analyze_food_consumption("None", api_key, prompt2)
     
-    # Extract nutritional data from triple quotes if present
+    # Extract nutritional data
     nutritional_data = {}
-    nutritional_text = ""
-    
-    # Try to extract content between triple quotes and also try backticks as fallback
     import re
-    # First try to find content between triple quotes
+    
+    # Try to extract content between triple quotes first
     nutritional_match = re.search(r"'''([\s\S]*?)'''", llm_response)
-    # If not found, try to find content between triple backticks
     if not nutritional_match:
+        # Fallback to triple backticks if quotes not found
         nutritional_match = re.search(r"```([\s\S]*?)```", llm_response)
     
     if nutritional_match:
@@ -61,20 +71,27 @@ Data: {str(answer_array)}
         for line in nutritional_text.split('\n'):
             if ':' in line:
                 key, value = line.split(':', 1)
-                nutritional_data[key.strip()] = value.strip()
+                # Try to convert numerical values to integers
+                try:
+                    nutritional_data[key.strip()] = int(''.join(filter(str.isdigit, value)))
+                except ValueError:
+                    nutritional_data[key.strip()] = value.strip()
     
-    # If nutritional data is still empty, try to extract in a more relaxed way
+    # Fallback extraction for missing values
     if not nutritional_data:
-        # Look for lines containing the key nutritional values
-        for key in ["calories", "protein", "carbs", "fat"]:
-            # Look for patterns like "calories: 300" anywhere in the text
+        keys = ["calories", "protein", "carbs", "fat", "remaining"]
+        for key in keys:
             pattern = rf"{key}:\s*(\d+)"
             match = re.search(pattern, llm_response, re.IGNORECASE)
             if match:
-                nutritional_data[key] = match.group(1)
+                nutritional_data[key] = int(match.group(1))
     
-    # Return both the recommendations and extracted nutritional data
+    # Clean up the recommendations text
+    recommendations = llm_response.strip()
+    if not recommendations:
+        recommendations = "Unable to generate specific recommendations. Please ensure all food portions are specified correctly."
+    
     return {
-        "recommendations": llm_response,
+        "recommendations": recommendations,
         "nutritional_data": nutritional_data
     }

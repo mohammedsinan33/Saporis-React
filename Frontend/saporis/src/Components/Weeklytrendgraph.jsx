@@ -21,7 +21,7 @@ ChartJS.register(
 );
 
 const WeeklyTrendGraph = ({ data }) => {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   const chartData = {
     labels: days,

@@ -87,7 +87,7 @@ const UserProfile = ({ onClose }) => {
         Height: parseInt(editedData.Height),
         Weight: parseInt(editedData.Weight),
         Age: parseInt(editedData.Age),
-        Multiplyer: multiplyer // Use validated number
+        Multiplayer: multiplyer // Use validated number
       };
 
       console.log('Sending update to Supabase:', updatedData);

@@ -1,28 +1,131 @@
 import { motion } from 'framer-motion';
-import { BarChart, PieChart, TrendingUp } from 'lucide-react';
+import { PieChart, TrendingUp } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Sidenavbar from '../Components/Sidenavbar';
 import PieChartComponent from '../Components/Pie-chart';
+import Sidenavbar from '../Components/Sidenavbar';
 import WeeklyTrendGraph from '../Components/Weeklytrendgraph';
+import { supabase } from '../lib/supabase';
 
 const Analysis = () => {
   const navigate = useNavigate();
   const [analysisData, setAnalysisData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [nutritionData, setNutritionData] = useState([]);
+  const [weeklyData, setWeeklyData] = useState({ values: [] });
 
   useEffect(() => {
-    // Simulated data fetch
     const fetchData = async () => {
       try {
-        // Replace with actual API call
-        const data = [
-          { type: 'Calories', value: 2500, trend: '+5%' },
-          { type: 'Protein', value: '75g', trend: '+12%' },
-          { type: 'Carbs', value: '310g', trend: '-3%' },
-          { type: 'Fat', value: '65g', trend: '+2%' }
-        ];
-        setAnalysisData(data);
+        const userEmail = localStorage.getItem('userEmail');
+        if (!userEmail) {
+          // Default data handling remains the same
+          setAnalysisData([
+            { type: 'Calories', value: 2500, trend: '+5%' },
+            { type: 'Protein', value: '75g', trend: '+12%' },
+            { type: 'Carbs', value: '310g', trend: '-3%' },
+            { type: 'Fat', value: '65g', trend: '+2%' }
+          ]);
+          setNutritionData([
+            { label: 'Protein', value: 25, color: '#9333EA' },
+            { label: 'Carbs', value: 45, color: '#7C3AED' },
+            { label: 'Fat', value: 30, color: '#6366F1' }
+          ]);
+          setWeeklyData({
+            values: [2100, 2300, 1950, 2400, 2200, 1900, 2500]
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        // Fetch all data from the last 7 days
+        const { data: weekData, error: weekError } = await supabase
+          .from('Food_and_calorie_details')
+          .select('*')
+          .eq('email', userEmail);
+
+        if (weekError) throw weekError;
+
+        // Get today's weekday name
+        const today = new Date();
+        const todayWeekday = today.toLocaleString('en-US', { weekday: 'long' });
+        
+        // Get yesterday's weekday name
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayWeekday = yesterday.toLocaleString('en-US', { weekday: 'long' });
+
+        // Get today's and yesterday's data
+        const todayData = weekData.find(d => d.Day_in_week === todayWeekday) || {
+          Consumed_Calorie: 0,
+          Protien: 0,
+          Carb: 0,
+          Fat: 0
+        };
+        
+        const yesterdayData = weekData.find(d => d.Day_in_week === yesterdayWeekday);
+
+        const calculateTrend = (current, previous) => {
+          if (!previous || !current) return '+0%';
+          const diff = ((current - previous) / previous) * 100;
+          return `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%`;
+        };
+
+        // Set analysis data with trends
+        setAnalysisData([
+          { 
+            type: 'Calories', 
+            value: Math.round(todayData.Consumed_Calorie) || 2500, 
+            trend: calculateTrend(todayData.Consumed_Calorie, yesterdayData?.Consumed_Calorie) 
+          },
+          { 
+            type: 'Protein', 
+            value: `${Math.round(todayData.Protien) || 75}g`, 
+            trend: calculateTrend(todayData.Protien, yesterdayData?.Protien) 
+          },
+          { 
+            type: 'Carbs', 
+            value: `${Math.round(todayData.Carb) || 310}g`, 
+            trend: calculateTrend(todayData.Carb, yesterdayData?.Carb) 
+          },
+          { 
+            type: 'Fat', 
+            value: `${Math.round(todayData.Fat) || 65}g`, 
+            trend: calculateTrend(todayData.Fat, yesterdayData?.Fat) 
+          }
+        ]);
+
+        // Calculate macros distribution
+        const totalMacros = todayData.Protien + todayData.Carb + todayData.Fat;
+        setNutritionData([
+          { 
+            label: 'Protein', 
+            value: Math.round((todayData.Protien / totalMacros) * 100) || 25, 
+            color: '#9333EA' 
+          },
+          { 
+            label: 'Carbs', 
+            value: Math.round((todayData.Carb / totalMacros) * 100) || 45, 
+            color: '#7C3AED' 
+          },
+          { 
+            label: 'Fat', 
+            value: Math.round((todayData.Fat / totalMacros) * 100) || 30, 
+            color: '#6366F1' 
+          }
+        ]);
+
+        // Map the weekly data
+        const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const weeklyValues = weekdays.map(day => {
+          const dayData = weekData.find(d => d.Day_in_week === day);
+          return dayData ? Math.round(dayData.Consumed_Calorie) : 0;
+        });
+
+        setWeeklyData({
+          values: weeklyValues
+        });
+
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching analysis data:', error);
@@ -32,16 +135,6 @@ const Analysis = () => {
 
     fetchData();
   }, []);
-
-  const nutritionData = [
-    { label: 'Protein', value: 25, color: '#9333EA' },
-    { label: 'Carbs', value: 45, color: '#7C3AED' },
-    { label: 'Fat', value: 30, color: '#6366F1' }
-  ];
-
-  const weeklyData = {
-    values: [2100, 2300, 1950, 2400, 2200, 1900, 2500]
-  };
 
   return (
     <div className="w-screen h-screen flex bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 text-white overflow-hidden">

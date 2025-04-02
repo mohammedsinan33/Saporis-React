@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, ImagePlus, X, Camera, Upload } from "lucide-react";
+import { Send, ImagePlus, X, Camera, Upload, Sparkles } from "lucide-react";
 
 // Reusable Button Component (assuming it's in a separate file)
 const Button = ({ onClick, variant, className, children, disabled }) => (
@@ -47,8 +47,8 @@ const Inputbox = ({ onSendMessage, hasImage }) => {
         const reader = new FileReader();
         reader.onloadend = () => {
             setPreviewImage(reader.result);
-            setShowUploadOptions(false); // Hide options after image selection
-            onSendMessage({ image: reader.result, text: '' }); // Send image data
+            setShowUploadOptions(false);
+            // Remove auto-sending of image
         };
         reader.readAsDataURL(file);
     };

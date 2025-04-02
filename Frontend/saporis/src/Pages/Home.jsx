@@ -1,215 +1,11 @@
-import React, { useEffect, useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Camera, ImagePlus, MessageCircleMore, Send, Sparkles, Upload, X } from "lucide-react";
+import { Camera, ImagePlus, Send, Sparkles, Upload, X } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
 import ReactMarkdown from 'react-markdown';
-import Navbar from "../Components/Navbar"; // Import the Navbar component
-import Sidenavbar from "../Components/Sidenavbar"; // Import the Sidenavbar component
-
-// Reusable Button Component
-const Button = ({ onClick, variant, className, children, disabled }) => (
-    <button
-        onClick={onClick}
-        className={`
-            ${variant === 'ghost' ? 'text-white' : ''}
-            ${className}
-            ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-        `}
-        disabled={disabled}
-    >
-        {children}
-    </button>
-);
-
-const Inputbox = ({ onSendMessage, hasImage }) => {
-    const [message, setMessage] = useState('');
-    const [isFocused, setIsFocused] = useState(false);
-    const [previewImage, setPreviewImage] = useState(null);
-    const [showUploadOptions, setShowUploadOptions] = useState(!hasImage);
-    const [confirmAnswer, setConfirmAnswer] = useState('yes');
-    const [calorieRecommendations, setCalorieRecommendations] = useState(null);
-    const fileInputRef = useRef(null);
-    const cameraInputRef = useRef(null);
-
-    const handleSend = () => {
-        if (message.trim() || previewImage) {
-            onSendMessage({ text: message, image: previewImage });
-            setMessage('');
-            setPreviewImage(null);
-        }
-    };
-
-    const handleKeyPress = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    };
-
-    const handleImageUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setPreviewImage(reader.result);
-            setShowUploadOptions(false); // Hide options after image selection
-            onSendMessage({ image: reader.result, text: '' }); //send image
-        };
-        reader.readAsDataURL(file);
-    };
-
-    const removeImage = () => {
-        setPreviewImage(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-        if (cameraInputRef.current) cameraInputRef.current.value = '';
-        setShowUploadOptions(true);
-    };
-
-    const toggleUploadOptions = () => {
-        setShowUploadOptions(!showUploadOptions);
-    };
-
-    return (
-        <div className="w-full relative">
-            {/* Initial Upload Prompt */}
-            {!previewImage && !hasImage && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-6 text-center"
-                >
-                    <div className="inline-flex flex-col items-center">
-                        <Sparkles className="w-8 h-8 mb-3 text-white/30" />
-                        <p className="text-white/70 mb-4">Upload a photo of food you'd like to know about</p>
-                    </div>
-                </motion.div>
-            )}
-
-            {/* Image Preview */}
-            {previewImage && (
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="relative mb-3 rounded-xl overflow-hidden"
-                >
-                    <img
-                        src={previewImage}
-                        alt="Preview"
-                        className="w-full max-h-48 object-cover rounded-xl"
-                    />
-                    <button
-                        onClick={removeImage}
-                        className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-full hover:bg-black/70 transition-all"
-                    >
-                        <X className="w-4 h-4 text-white" />
-                    </button>
-                </motion.div>
-            )}
-
-            {/* Input Area */}
-            <motion.div
-                className="flex space-x-3 items-center"
-                animate={{
-                    y: isFocused ? -2 : 0,
-                }}
-            >
-                {/* Hidden file inputs */}
-                <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageUpload}
-                    accept="image/*"
-                    className="hidden"
-                    id="file-upload"
-                />
-                <input
-                    type="file"
-                    ref={cameraInputRef}
-                    onChange={handleImageUpload}
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    id="camera-upload"
-                />
-
-                {/* Upload Button with Options */}
-                <div className="relative">
-                    <Button
-                        onClick={toggleUploadOptions}
-                        variant="ghost"
-                        className="p-3 aspect-square bg-gradient-to-br from-purple-600 to-violet-600 text-white"
-                    >
-                        <ImagePlus className="w-5 h-5" />
-                    </Button>
-
-                    <AnimatePresence>
-                        {showUploadOptions && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                                transition={{ type: "spring", damping: 25 }}
-                                className="absolute bottom-full left-0 mb-2 w-48 bg-white/10 backdrop-blur-lg rounded-xl p-2 shadow-lg border border-white/20 z-10"
-                            >
-                                <label
-                                    htmlFor="camera-upload"
-                                    className="flex items-center space-x-2 p-3 rounded-lg hover:bg-white/10 cursor-pointer transition-all"
-                                >
-                                    <Camera className="w-5 h-5 text-white" />
-                                    <span className="text-white">Take Photo</span>
-                                </label>
-                                <label
-                                    htmlFor="file-upload"
-                                    className="flex items-center space-x-2 p-3 rounded-lg hover:bg-white/10 cursor-pointer transition-all"
-                                >
-                                    <Upload className="w-5 h-5 text-white" />
-                                    <span className="text-white">Upload from Device</span>
-                                </label>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-
-                {/* Text Input - Only shown after image is uploaded */}
-                {(previewImage || hasImage) && (
-                    <div className="relative flex-grow">
-                        <motion.input
-                            type="text"
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            onFocus={() => setIsFocused(true)}
-                            onBlur={() => setIsFocused(false)}
-                            placeholder="Ask about this food..."
-                            className="w-full p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 focus:border-purple-400 focus:ring-2 focus:ring-purple-500/30 text-white placeholder-white/40 transition-all"
-                        />
-                        {isFocused && (
-                            <motion.div
-                                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 to-violet-600"
-                                initial={{ scaleX: 0 }}
-                                animate={{ scaleX: 1 }}
-                                transition={{ duration: 0.3 }}
-                            />
-                        )}
-                    </div>
-                )}
-
-                {/* Send Button - Only shown after image is uploaded */}
-                {(previewImage || hasImage) && (
-                    <Button
-                        onClick={handleSend}
-                        className="p-4 aspect-square bg-gradient-to-br from-purple-600 to-violet-600"
-                        disabled={!message.trim() && !previewImage}
-                    >
-                        <Send className="w-5 h-5" />
-                    </Button>
-                )}
-            </motion.div>
-        </div>
-    );
-};
-
-
+import Navbar from "../Components/Navbar";
+import Sidenavbar from "../Components/Sidenavbar";
+import Inputbox from "../Components/Inputbox";
+import { supabase } from '../lib/supabase';
 
 const Home = () => {
     const [messages, setMessages] = useState([]);
@@ -218,8 +14,45 @@ const Home = () => {
     const [answers, setAnswers] = useState({});
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [isAwaitingResponse, setIsAwaitingResponse] = useState(false);
+    const [userData, setUserData] = useState(null);
+    const [calorieGoal, setCalorieGoal] = useState(null);
+    const [showConfirmation, setShowConfirmation] = useState(false);
+    const [foodDetails, setFoodDetails] = useState(null);
+    const [lastAnswers, setLastAnswers] = useState('');
 
-    // Add initial bot message when component mounts
+    useEffect(() => {
+        fetchUserData();
+    }, []);
+
+    const fetchUserData = async () => {
+        try {
+            const userEmail = localStorage.getItem('userEmail');
+            if (!userEmail) {
+                console.error('No user email found');
+                return;
+            }
+
+            const { data, error } = await supabase
+                .from('Auth')
+                .select('Calorie_goal')
+                .eq('email', userEmail)
+                .single();
+
+            if (error) {
+                console.error('Error fetching user data:', error);
+                return;
+            }
+
+            if (data) {
+                console.log('Fetched user data:', data);
+                setCalorieGoal(data.Calorie_goal);
+                setUserData(data);
+            }
+        } catch (error) {
+            console.error('Error in fetchUserData:', error);
+        }
+    };
+
     useEffect(() => {
         const initialBotMessage = {
             text: "Hello! I'm Saporis. Please upload a photo of the food you'd like to know about, and I'll help you with recipes, and nutrition info!",
@@ -237,8 +70,24 @@ const Home = () => {
             timestamp: new Date().toLocaleTimeString()
         };
 
-        const newMessages = [...messages, userMessage];
-        setMessages(newMessages);
+        setMessages(prevMessages => [...prevMessages, userMessage]);
+
+        // Handle confirmation response
+        if (showConfirmation) {
+            if (messageData.text.toLowerCase() === 'yes') {
+                await saveFoodDetails();
+            } else {
+                const cancelMessage = {
+                    text: "Okay, I won't record this meal. Feel free to upload another food photo when you're ready!",
+                    sender: "bot",
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                setMessages(prevMessages => [...prevMessages, cancelMessage]);
+            }
+            setShowConfirmation(false);
+            setHasImage(false);
+            return;
+        }
 
         if (messageData.image && !hasImage) {
             setHasImage(true);
@@ -247,6 +96,12 @@ const Home = () => {
                 const formData = new FormData();
                 const file = dataURLtoFile(messageData.image, 'food.jpg');
                 formData.append('file', file);
+
+                const processingMessage = {
+                    sender: "bot",
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                setMessages(prevMessages => [...prevMessages, processingMessage]);
 
                 const response = await fetch('http://127.0.0.1:8000/upload_image/', {
                     method: 'POST',
@@ -260,30 +115,32 @@ const Home = () => {
                 const data = await response.json();
                 console.log("Server response:", data);
 
-                // Add confirmation question at the end
-                const updatedQuestions = Object.entries(data).map(([key, value]) => ({
-                    id: key,
-                    text: value,
-                })).concat([{
-                    id: 'confirmation',
-                    text: 'Do you confirm the information you provided is correct? (Yes/No)'
-                }]);
+                const questionArray = Object.values(data).map((questionText, index) => ({
+                    id: `question${index + 1}`,
+                    text: questionText.trim()
+                }));
 
-                setQuestions(updatedQuestions);
+                questionArray.push({
+                    id: 'confirmation',
+                    text: 'Do you confirm these portions are correct? (Yes/No)'
+                });
+
+                setQuestions(questionArray);
                 setCurrentQuestionIndex(0);
-                const firstBotMessage = {
-                    text: updatedQuestions[0].text,
+
+                const firstQuestion = {
+                    text: questionArray[0].text,
                     sender: "bot",
                     timestamp: new Date().toLocaleTimeString()
-                }
-                setMessages(prevMessages => [...prevMessages, firstBotMessage]);
+                };
+                setMessages(prevMessages => [...prevMessages, firstQuestion]);
 
             } catch (error) {
                 console.error('Error uploading image:', error);
                 const errorMessage = {
-                    text: "Sorry, there was an error processing your image. Please try again.",
+                    text: "Sorry, I couldn't analyze your image. Please try uploading again.",
                     sender: "bot",
-                    timestamp: new Date().toLocaleTimeString(),
+                    timestamp: new Date().toLocaleTimeString()
                 };
                 setMessages(prevMessages => [...prevMessages, errorMessage]);
             } finally {
@@ -292,7 +149,6 @@ const Home = () => {
         } else if (messageData.text && questions.length > 0) {
             const currentQuestion = questions[currentQuestionIndex];
 
-            // Store the answer
             setAnswers(prevAnswers => ({
                 ...prevAnswers,
                 [currentQuestion.id]: {
@@ -302,7 +158,6 @@ const Home = () => {
             }));
 
             if (currentQuestionIndex < questions.length - 1) {
-                // Show next question
                 setCurrentQuestionIndex(currentQuestionIndex + 1);
                 const nextBotMessage = {
                     text: questions[currentQuestionIndex + 1].text,
@@ -311,7 +166,6 @@ const Home = () => {
                 }
                 setMessages(prevMessages => [...prevMessages, nextBotMessage]);
             } else {
-                // After the last question, directly process the answers
                 try {
                     const formattedAnswers = Object.entries(answers)
                         .map(([id, answerObj]) => {
@@ -319,14 +173,20 @@ const Home = () => {
                             const questionText = questionObj?.text || "Unknown Question";
                             return `${questionText}: ${answerObj.answer}`;
                         })
+                        .concat([`Daily Calorie Goal: ${calorieGoal} calories`])
                         .join('\n');
+
+                    setLastAnswers(formattedAnswers);
 
                     const response = await fetch('http://127.0.0.1:8000/get_calorie_recommendations/', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ user_input: formattedAnswers }),
+                        body: JSON.stringify({ 
+                            user_input: formattedAnswers,
+                            calorie_goal: calorieGoal 
+                        }),
                     });
 
                     if (!response.ok) {
@@ -334,12 +194,28 @@ const Home = () => {
                     }
 
                     const data = await response.json();
+                    
+                    // Save nutritional data
+                    setFoodDetails(data.nutritional_data);
+                    
+                    // Send recommendations
                     const recommendationMessage = {
                         text: `Here are your calorie recommendations:\n\n${data.calorie_recommendations}`,
                         sender: "bot",
                         timestamp: new Date().toLocaleTimeString()
                     };
                     setMessages(prevMessages => [...prevMessages, recommendationMessage]);
+
+                    // Ask for confirmation
+                    setTimeout(() => {
+                        const confirmationMessage = {
+                            text: "Have you eaten this food? Reply with 'Yes' or 'No'",
+                            sender: "bot",
+                            timestamp: new Date().toLocaleTimeString()
+                        };
+                        setMessages(prevMessages => [...prevMessages, confirmationMessage]);
+                        setShowConfirmation(true);
+                    }, 1000);
 
                 } catch (error) {
                     console.error('Error sending data:', error);
@@ -351,12 +227,93 @@ const Home = () => {
                     setMessages(prevMessages => [...prevMessages, errorMessage]);
                 }
 
-                // Reset state
                 setQuestions([]);
                 setAnswers({});
                 setCurrentQuestionIndex(0);
                 setHasImage(true);
             }
+        }
+    };
+
+    // Add function to save food details to Supabase
+    const saveFoodDetails = async () => {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const userEmail = localStorage.getItem('userEmail');
+            const dayOfWeek = new Date().toLocaleString('en-US', { weekday: 'long' });
+
+            // First, check if there's an existing record for today
+            const { data: existingRecord, error: fetchError } = await supabase
+                .from('Food_and_calorie_details')
+                .select('*')
+                .eq('Day', today)
+                .eq('email', userEmail)
+                .single();
+
+            if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
+                console.error('Error fetching existing record:', fetchError);
+                throw fetchError;
+            }
+
+            let error;
+            if (existingRecord) {
+                // Extract food details from lastAnswers - assuming it contains the food description
+                const newFoodItem = lastAnswers.split('\n')[0]; // Get first line which typically contains the food item
+
+                // Update existing record
+                const { error: updateError } = await supabase
+                    .from('Food_and_calorie_details')
+                    .update({
+                        Consumed_Calorie: parseFloat(existingRecord.Consumed_Calorie) + parseFloat(foodDetails.calories),
+                        Protien: parseFloat(existingRecord.Protien) + parseFloat(foodDetails.protein),
+                        Fat: parseFloat(existingRecord.Fat) + parseFloat(foodDetails.fat),
+                        Carb: parseFloat(existingRecord.Carb) + parseFloat(foodDetails.carbs),
+                        Food_details: existingRecord.Food_details + '\n' + newFoodItem // Append new food item
+                    })
+                    .eq('Day', today)
+                    .eq('email', userEmail);
+
+                error = updateError;
+            } else {
+                // Create new record if none exists
+                const { error: insertError } = await supabase
+                    .from('Food_and_calorie_details')
+                    .insert([{
+                        Consumed_Calorie: parseFloat(foodDetails.calories),
+                        Protien: parseFloat(foodDetails.protein),
+                        Fat: parseFloat(foodDetails.fat),
+                        Carb: parseFloat(foodDetails.carbs),
+                        Day: today,
+                        Food_details: lastAnswers.split('\n')[0], // Only store the food item description
+                        email: userEmail,
+                        Day_in_week: dayOfWeek
+                    }]);
+
+                error = insertError;
+            }
+
+            if (error) {
+                console.error('Error saving food details:', error);
+                throw error;
+            }
+
+            // Add success message to chat
+            const successMessage = {
+                text: existingRecord 
+                    ? "Great! I've updated your food consumption for today."
+                    : "Great! I've recorded your food consumption for today.",
+                sender: "bot",
+                timestamp: new Date().toLocaleTimeString()
+            };
+            setMessages(prevMessages => [...prevMessages, successMessage]);
+        } catch (error) {
+            console.error('Error in saveFoodDetails:', error);
+            const errorMessage = {
+                text: "Sorry, I couldn't save your food details. Please try again.",
+                sender: "bot",
+                timestamp: new Date().toLocaleTimeString()
+            };
+            setMessages(prevMessages => [...prevMessages, errorMessage]);
         }
     };
 
@@ -416,51 +373,38 @@ const Home = () => {
                                                 className="mb-2 rounded-lg max-w-full max-h-48 object-cover"
                                             />
                                         )}
-                                        {[...new Set(msg.text.split("\n"))].map((paragraph, i) => {
-                                            // Add special formatting for recommendations
-                                            if (paragraph.startsWith("Here are your calorie recommendations:")) {
-                                                return (
-                                                    <div key={i} className="space-y-2">
-                                                        <h3 className="font-semibold text-lg mb-2">{paragraph}</h3>
-                                                        <div className="pl-4 border-l-2 border-purple-400">
-                                                            <ReactMarkdown
-                                                                components={{
-                                                                    // ...existing components remain the same...
-                                                                }}
-                                                            >
-                                                                {msg.text.split('\n').slice(2).join('\n')}
-                                                            </ReactMarkdown>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            }
-                                            // Skip both the header and content of calorie recommendations
-                                            if (paragraph.startsWith("Here are your calorie recommendations:") ||
-                                                msg.text.split('\n').slice(2).join('\n').includes(paragraph)) {
-                                                return null;
-                                            }
-                                            return (
+                                        {msg.text && (
+                                            <div className="prose prose-invert max-w-none">
                                                 <ReactMarkdown
-                                                    key={i}
                                                     components={{
-                                                        p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
-                                                        strong: ({ node, ...props }) => <strong className="font-semibold" {...props} />,
-                                                        em: ({ node, ...props }) => <em className="italic" {...props} />,
+                                                        h1: ({node, ...props}) => <h1 className="text-2xl font-bold mb-4" {...props} />,
+                                                        h2: ({node, ...props}) => <h2 className="text-xl font-bold mb-3" {...props} />,
+                                                        h3: ({node, ...props}) => <h3 className="text-lg font-bold mb-2" {...props} />,
+                                                        p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                                                        ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-4" {...props} />,
+                                                        ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-4" {...props} />,
+                                                        li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                                                        strong: ({node, ...props}) => <strong className="font-semibold text-purple-300" {...props} />,
+                                                        em: ({node, ...props}) => <em className="text-purple-200 italic" {...props} />,
+                                                        hr: ({node, ...props}) => <hr className="my-4 border-white/10" {...props} />,
+                                                        blockquote: ({node, ...props}) => (
+                                                            <blockquote className="border-l-4 border-purple-500 pl-4 my-4 italic text-white/80" {...props} />
+                                                        ),
                                                     }}
                                                 >
-                                                    {paragraph}
+                                                    {msg.text}
                                                 </ReactMarkdown>
-                                            );
-                                        })}
+                                            </div>
+                                        )}
                                         <div className={`text-xs mt-2 ${isUser ? 'text-white/70' : 'text-white/50'}`}>
                                             {msg.timestamp}
                                         </div>
                                         {isUser && (
-                                            <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-purple-400/10 rounded-full"></div>
+                                            <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-purple-400/10 rounded-full" />
                                         )}
                                     </div>
                                 </motion.div>
-                            )
+                            );
                         })
                     )}
                     {isAwaitingResponse && (

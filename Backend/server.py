@@ -30,11 +30,11 @@ app.add_middleware(
 
 class UserInput(BaseModel):
     user_input: str
+    calorie_goal: int
 
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
-
 
 @app.post("/upload_image/")
 async def upload_image_and_give_back_questions(file: UploadFile):
@@ -55,43 +55,42 @@ async def upload_image_and_give_back_questions(file: UploadFile):
         
         send_image_and_response = analyze_food_consumption(f"./images/{file.filename}", api_key, prompt1)
         questions = send_image_and_response.split("'''")[1::2]
-        questions.append("What is your estimated calorie goal?")
         
         questions_json = {}
         for i, question in enumerate(questions):
-            questions_json[f"question{i+1}"] = question
+            questions_json[f"question{i+1}"] = question.strip()
 
-        print(questions_json)
+        print("Generated questions:", questions_json)
         return questions_json
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error saving image: {e}")
+        raise HTTPException(status_code=500, detail=f"Error processing image: {e}")
 
     finally:
-        file.file.close() # Important to close the file.
+        file.file.close()
         
 @app.post("/get_calorie_recommendations/")
 async def get_calorie_recommendations_from_user_input(data: UserInput):
     """
-    Accepts the user input as a string (as sent by the frontend)
-    and returns the calorie recommendations along with nutritional data.
+    Accepts the user input and calorie goal, returns personalized recommendations
     """
-    print("Request received")
-    print("Received user_input:", data.user_input)
+    print("Request received with calorie goal:", data.calorie_goal)
     try:
-        result = get_calorie_recommendations(api_key, data.user_input)
+        # Add calorie goal to the user input for context
+        full_input = f"{data.user_input}\nUser's Daily Calorie Goal: {data.calorie_goal} calories"
+        result = get_calorie_recommendations(api_key, full_input)
         
         # Extract nutritional data and recommendations from result
         recommendations = result.get("recommendations", "")
         nutritional_data = result.get("nutritional_data", {})
         
-        # Prepare response with both recommendations and nutritional data
+        # Prepare response with recommendations and nutritional data
         response = {
             "calorie_recommendations": recommendations,
             "nutritional_data": nutritional_data
         }
         
-        print("Response:", response)
+        print("Generated response:", response)
         return response
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error getting calorie recommendations: {e}")
+        raise HTTPException(status_code=500, detail=f"Error generating recommendations: {e}")
