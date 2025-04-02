@@ -1,0 +1,10 @@
+# Test the calorie recommendations endpoint with curl
+# Make sure your FastAPI server is running first with: uvicorn server:app --reload
+
+curl -X POST \
+  http://localhost:8000/get_calorie_recommendations/ \
+  -H "Content-Type: application/json" \
+  -d '{"user_input": "I ate 1 bowl of rice (200g), 2 chapatis, 100g of chicken curry, and 1 cup of dal. My calorie goal is 2000."}'
+
+# If you have jq installed, you can format the output:
+# curl -X POST http://localhost:8000/get_calorie_recommendations/ -H "Content-Type: application/json" -d '{"user_input": "I ate 1 bowl of rice (200g), 2 chapatis, 100g of chicken curry, and 1 cup of dal. My calorie goal is 2000."}' | jq .

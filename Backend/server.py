@@ -74,13 +74,24 @@ async def upload_image_and_give_back_questions(file: UploadFile):
 async def get_calorie_recommendations_from_user_input(data: UserInput):
     """
     Accepts the user input as a string (as sent by the frontend)
-    and returns the calorie recommendations.
+    and returns the calorie recommendations along with nutritional data.
     """
     print("Request received")
     print("Received user_input:", data.user_input)
     try:
-        calorie_recommendations = get_calorie_recommendations(api_key, data.user_input) # Replace dummy_api_key
-        print("Calorie recommendations:", calorie_recommendations)
-        return {"calorie_recommendations": calorie_recommendations}
+        result = get_calorie_recommendations(api_key, data.user_input)
+        
+        # Extract nutritional data and recommendations from result
+        recommendations = result.get("recommendations", "")
+        nutritional_data = result.get("nutritional_data", {})
+        
+        # Prepare response with both recommendations and nutritional data
+        response = {
+            "calorie_recommendations": recommendations,
+            "nutritional_data": nutritional_data
+        }
+        
+        print("Response:", response)
+        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting calorie recommendations: {e}")

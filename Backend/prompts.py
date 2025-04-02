@@ -15,9 +15,21 @@ If the image does not contain food, you should ask the user to provide a new ima
 Generate the questions now."""
 
 answers_string = ""
-prompt2 = f"""You are a nutrition expert. Given the following data about food consumption, calculate the estimated calorie intake also the intake of carbs protien and Fat.
+prompt2 = f"""You are a nutrition expert. Given the following data about food consumption, calculate the estimated calorie intake as well as the intake of carbs, protein and fat.
 
 Data: {answers_string}
 
-Provide an estimate of the total calories consumed. If exact calorie values are not available, provide a reasonable estimate.
+1. Provide an estimate of the total calories consumed from the given data.
+2. Show the detailed calculation of these calories.
+3. Calculate the remaining calories needed to reach the calorie goal.
+4. Calculate the total protein (in grams), total carbohydrates (in grams) and total fat (in grams) in the consumed food items.
+5. Place the nutritional summary within triple quotes (''') in this exact format:
+   '''
+   calories: [total calories]
+   protein: [total protein in grams]
+   carbs: [total carbs in grams]
+   fat: [total fat in grams]
+   '''
+6. Recommend food items that can help the user reach their calorie goal, along with the approximate calorie value of each recommended food item. The food items should be Indian food items.
+7. Only give me the number of calories, the calculation of the consumed calories, the nutritional summary in the specified format, and the recommended food items with their calorie values.
 """
