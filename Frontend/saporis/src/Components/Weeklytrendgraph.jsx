@@ -27,6 +27,7 @@ const WeeklyTrendGraph = ({ data }) => {
     labels: days,
     datasets: [
       {
+        label: 'Calories Consumed',
         data: data.values,
         fill: true,
         borderColor: '#9333EA',
@@ -39,6 +40,16 @@ const WeeklyTrendGraph = ({ data }) => {
         pointRadius: 4,
         pointHoverRadius: 6,
       },
+      {
+        label: 'Calorie Goal',
+        data: Array(7).fill(data.calorieGoal),
+        fill: false,
+        borderColor: '#22C55E',
+        borderDash: [5, 5],
+        tension: 0,
+        pointRadius: 0,
+        borderWidth: 2,
+      }
     ],
   };
 
@@ -77,7 +88,12 @@ const WeeklyTrendGraph = ({ data }) => {
         borderWidth: 1,
         displayColors: false,
         callbacks: {
-          label: (context) => `${context.parsed.y} calories`,
+          label: (context) => {
+            if (context.dataset.label === 'Calorie Goal') {
+              return `Goal: ${context.parsed.y} calories`;
+            }
+            return `Consumed: ${context.parsed.y} calories`;
+          },
         },
       },
     },

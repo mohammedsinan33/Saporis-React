@@ -12,7 +12,7 @@ const Analysis = () => {
   const [analysisData, setAnalysisData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [nutritionData, setNutritionData] = useState([]);
-  const [weeklyData, setWeeklyData] = useState({ values: [] });
+  const [weeklyData, setWeeklyData] = useState({ values: [], calorieGoal: 2000 });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,6 +37,17 @@ const Analysis = () => {
           setIsLoading(false);
           return;
         }
+
+        // First fetch the user's calorie goal
+        const { data: userData, error: userError } = await supabase
+          .from('Auth')
+          .select('Calorie_goal')
+          .eq('email', userEmail)
+          .single();
+
+        if (userError) throw userError;
+
+        const calorieGoal = userData?.Calorie_goal || 2000;
 
         // Fetch all data from the last 7 days
         const { data: weekData, error: weekError } = await supabase
@@ -122,8 +133,10 @@ const Analysis = () => {
           return dayData ? Math.round(dayData.Consumed_Calorie) : 0;
         });
 
+        // Update weeklyData to include calorie goal
         setWeeklyData({
-          values: weeklyValues
+          values: weeklyValues,
+          calorieGoal: calorieGoal
         });
 
         setIsLoading(false);
