@@ -15,7 +15,7 @@ If the image does not contain food, you should ask the user to provide a new ima
 Generate the questions now."""
 
 answers_string = ""
-prompt2 = f"""You are a nutrition expert. Given the following data about food consumption, calculate the estimated calorie intake.
+prompt2 = f"""You are a nutrition expert. Given the following data about food consumption, calculate the estimated calorie intake also the intake of carbs protien and Fat.
 
 Data: {answers_string}
 

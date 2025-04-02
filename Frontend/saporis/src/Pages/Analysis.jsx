@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidenavbar from '../Components/Sidenavbar';
 import PieChartComponent from '../Components/Pie-chart';
-import WeeklyTrendGraph from '../Components/Weeklytrndgraph';
+import WeeklyTrendGraph from '../Components/Weeklytrendgraph';
 
 const Analysis = () => {
   const navigate = useNavigate();
@@ -40,7 +40,7 @@ const Analysis = () => {
   ];
 
   const weeklyData = {
-    values: [2100, 2300, 1950, 2400, 2200, 1800, 2500]
+    values: [2100, 2300, 1950, 2400, 2200, 1900, 2500]
   };
 
   return (
