@@ -31,6 +31,12 @@ class UserInput(BaseModel):
     user_input: str
     calorie_goal: int
 
+class NutritionChatInput(BaseModel):
+    user_message: str
+    nutrition_context: Optional[str] = None
+    daily_consumption: dict
+    calorie_goal: int
+
 class NutritionStats(BaseModel):
     calories: float
     protein: float
@@ -204,3 +210,78 @@ async def get_nutrition_summary(data: NutritionSummaryInput):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating summary: {str(e)}")
+
+@app.post("/chat_with_nutrition/")
+async def chat_with_nutrition(data: NutritionChatInput):
+    """
+    Handles user questions about their nutrition and provides personalized responses
+    based on their daily consumption data and calorie goals.
+    """
+    try:
+        # Extract data from the request
+        user_message = data.user_message
+        nutrition_context = data.nutrition_context or "No previous context"
+        daily_consumption = data.daily_consumption
+        calorie_goal = data.calorie_goal
+
+        # Format food items list if it exists
+        food_items_str = daily_consumption.get("food_items", "No food items recorded")
+        
+        # Calculate remaining calories
+        current_calories = daily_consumption.get("calories", 0)
+        remaining_calories = calorie_goal - current_calories if calorie_goal and current_calories else "unknown"
+        
+        # Create a prompt for the AI
+        prompt = f"""
+        You are Saporis, a friendly and helpful nutrition assistant.
+
+        USER QUERY: {user_message}
+
+        NUTRITION CONTEXT (Previous conversation):
+        {nutrition_context}
+
+        USER'S DAILY CONSUMPTION DATA:
+        - Current Calories: {daily_consumption.get('calories', 0)} calories
+        - Protein: {daily_consumption.get('protein', 0)}g
+        - Carbs: {daily_consumption.get('carbs', 0)}g
+        - Fat: {daily_consumption.get('fat', 0)}g
+        - Food Items Consumed: {food_items_str}
+        - Daily Calorie Goal: {calorie_goal} calories
+        - Remaining Calories: {remaining_calories} calories
+
+        Answer the user's question about their nutrition based on the provided data. 
+        Be specific, informative and friendly. Give practical advice that's tailored to their situation.
+        
+        At the end of your response, determine if you should suggest the user to upload another food photo.
+        Set the 'suggest_upload' flag to true ONLY IF:
+        1. The user hasn't logged much food today (less than 3 items or very few calories), OR
+        2. The user is asking about logging more food, OR
+        3. The user seems uncertain about what to eat next.
+        
+        Format your response in clear sections with bullet points for easy reading.
+        Do NOT mention the 'suggest_upload' flag in your response text.
+        Your final answer should be natural, helpful nutrition advice.
+        """
+        
+        # Get response from AI
+        ai_response = analyze_food_consumption(None, api_key, prompt)
+        cleaned_response = clean_markdown(ai_response)
+        
+        # Determine whether to suggest upload based on the response content
+        suggest_upload = False
+        if (
+            "upload" in cleaned_response.lower() or
+            "log more" in cleaned_response.lower() or
+            "add more" in cleaned_response.lower() or
+            "take a picture" in cleaned_response.lower() or
+            remaining_calories > 500  # Significant calories remaining
+        ):
+            suggest_upload = True
+        
+        # Return response with suggestion flag
+        return {
+            "response": cleaned_response,
+            "suggest_upload": suggest_upload
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing nutrition chat: {str(e)}")
