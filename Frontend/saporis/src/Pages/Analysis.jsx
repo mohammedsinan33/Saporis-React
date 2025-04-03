@@ -12,29 +12,48 @@ const Analysis = () => {
   const [analysisData, setAnalysisData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [nutritionData, setNutritionData] = useState([]);
-  const [weeklyData, setWeeklyData] = useState({ values: [], calorieGoal:0 });
+  const [weeklyData, setWeeklyData] = useState({ values: [], calorieGoal: 0 });
   const [summary, setSummary] = useState('');
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+
+  const setDefaultValues = () => {
+    setAnalysisData([
+      { type: 'Calories', value: 0, trend: '+5%' },
+      { type: 'Protein', value: '0g', trend: '+12%' },
+      { type: 'Carbs', value: '0g', trend: '-3%' },
+      { type: 'Fat', value: '0g', trend: '+2%' }
+    ]);
+    setNutritionData([
+      { label: 'Protein', value: 33, color: '#9333EA' },
+      { label: 'Carbs', value: 33, color: '#7C3AED' },
+      { label: 'Fat', value: 34, color: '#6366F1' }
+    ]);
+    setWeeklyData({
+      values: [2100, 2300, 1950, 2400, 2200, 1900, 2500],
+      calorieGoal: 2000
+    });
+    setIsLoading(false);
+  };
 
   const generateSummary = async (data, goal) => {
     try {
       setIsSummaryLoading(true);
-      
+
       // Format the data for the backend
       const summaryData = {
         current_stats: {
-          calories: data.find(item => item.type === 'Calories')?.value || 0,
-          protein: data.find(item => item.type === 'Protein')?.value.replace('g', '') || 0,
-          carbs: data.find(item => item.type === 'Carbs')?.value.replace('g', '') || 0,
-          fat: data.find(item => item.type === 'Fat')?.value.replace('g', '') || 0
+          calories: Number(data.find(item => item.type === 'Calories')?.value) || 0,
+          protein: Number(data.find(item => item.type === 'Protein')?.value.replace('g', '')) || 0,
+          carbs: Number(data.find(item => item.type === 'Carbs')?.value.replace('g', '')) || 0,
+          fat: Number(data.find(item => item.type === 'Fat')?.value.replace('g', '')) || 0
         },
         calorie_goal: goal,
-        weekly_trends: weeklyData.values,
+        weekly_trends: weeklyData.values || [],
         trends: {
-          calories: data.find(item => item.type === 'Calories')?.trend || '0%',
-          protein: data.find(item => item.type === 'Protein')?.trend || '0%',
-          carbs: data.find(item => item.type === 'Carbs')?.trend || '0%',
-          fat: data.find(item => item.type === 'Fat')?.trend || '0%'
+          calories: data.find(item => item.type === 'Calories')?.trend.replace('%', '') || '0',
+          protein: data.find(item => item.type === 'Protein')?.trend.replace('%', '') || '0',
+          carbs: data.find(item => item.type === 'Carbs')?.trend.replace('%', '') || '0',
+          fat: data.find(item => item.type === 'Fat')?.trend.replace('%', '') || '0'
         }
       };
 
@@ -65,22 +84,7 @@ const Analysis = () => {
       try {
         const userEmail = localStorage.getItem('userEmail');
         if (!userEmail) {
-          // Default data handling remains the same
-          setAnalysisData([
-            { type: 'Calories', value: 0, trend: '+5%' },
-            { type: 'Protein', value: '0g', trend: '+12%' },
-            { type: 'Carbs', value: '0g', trend: '-3%' },
-            { type: 'Fat', value: '0g', trend: '+2%' }
-          ]);
-          setNutritionData([
-            { label: 'Protein', value: 33, color: '#9333EA' },
-            { label: 'Carbs', value: 33, color: '#7C3AED' },
-            { label: 'Fat', value: 34, color: '#6366F1' }
-          ]);
-          setWeeklyData({
-            values: [2100, 2300, 1950, 2400, 2200, 1900, 2500]
-          });
-          setIsLoading(false);
+          setDefaultValues();
           return;
         }
 
@@ -103,10 +107,34 @@ const Analysis = () => {
 
         if (weekError) throw weekError;
 
+        // If no data exists, set default zero values
+        if (!weekData || weekData.length === 0) {
+          setAnalysisData([
+            { type: 'Calories', value: 0, trend: '0%' },
+            { type: 'Protein', value: '0g', trend: '0%' },
+            { type: 'Carbs', value: '0g', trend: '0%' },
+            { type: 'Fat', value: '0g', trend: '0%' }
+          ]);
+
+          setNutritionData([
+            { label: 'Protein', value: 0, color: '#9333EA' },
+            { label: 'Carbs', value: 0, color: '#7C3AED' },
+            { label: 'Fat', value: 0, color: '#6366F1' }
+          ]);
+
+          setWeeklyData({
+            values: [0, 0, 0, 0, 0, 0, 0],
+            calorieGoal: calorieGoal
+          });
+
+          setIsLoading(false);
+          return;
+        }
+
         // Get today's weekday name
         const today = new Date();
         const todayWeekday = today.toLocaleString('en-US', { weekday: 'long' });
-        
+
         // Get yesterday's weekday name
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
@@ -119,58 +147,60 @@ const Analysis = () => {
           Carb: 0,
           Fat: 0
         };
-        
+
         const yesterdayData = weekData.find(d => d.Day_in_week === yesterdayWeekday);
 
         const calculateTrend = (current, previous) => {
-          if (!previous || !current) return '+0%';
+          if (!previous || previous === 0) return '+0%';
           const diff = ((current - previous) / previous) * 100;
           return `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%`;
         };
 
         // Set analysis data with trends
-        setAnalysisData([
-          { 
-            type: 'Calories', 
-            value: Math.round(todayData.Consumed_Calorie) || 2500, 
-            trend: calculateTrend(todayData.Consumed_Calorie, yesterdayData?.Consumed_Calorie) 
+        const newAnalysisData = [
+          {
+            type: 'Calories',
+            value: Math.round(todayData.Consumed_Calorie) || 0,
+            trend: calculateTrend(todayData.Consumed_Calorie, yesterdayData?.Consumed_Calorie)
           },
-          { 
-            type: 'Protein', 
-            value: `${Math.round(todayData.Protien) || 75}g`, 
-            trend: calculateTrend(todayData.Protien, yesterdayData?.Protien) 
+          {
+            type: 'Protein',
+            value: `${Math.round(todayData.Protien) || 0}g`,
+            trend: calculateTrend(todayData.Protien, yesterdayData?.Protien)
           },
-          { 
-            type: 'Carbs', 
-            value: `${Math.round(todayData.Carb) || 310}g`, 
-            trend: calculateTrend(todayData.Carb, yesterdayData?.Carb) 
+          {
+            type: 'Carbs',
+            value: `${Math.round(todayData.Carb) || 0}g`,
+            trend: calculateTrend(todayData.Carb, yesterdayData?.Carb)
           },
-          { 
-            type: 'Fat', 
-            value: `${Math.round(todayData.Fat) || 65}g`, 
-            trend: calculateTrend(todayData.Fat, yesterdayData?.Fat) 
+          {
+            type: 'Fat',
+            value: `${Math.round(todayData.Fat) || 0}g`,
+            trend: calculateTrend(todayData.Fat, yesterdayData?.Fat)
           }
-        ]);
+        ];
+        setAnalysisData(newAnalysisData);
 
         // Calculate macros distribution
         const totalMacros = todayData.Protien + todayData.Carb + todayData.Fat;
-        setNutritionData([
-          { 
-            label: 'Protein', 
-            value: Math.round((todayData.Protien / totalMacros) * 100) || 25, 
-            color: '#9333EA' 
+        const newNutritionData = [
+          {
+            label: 'Protein',
+            value: totalMacros > 0 ? Math.round((todayData.Protien / totalMacros) * 100) : 0 ,
+            color: '#9333EA'
           },
-          { 
-            label: 'Carbs', 
-            value: Math.round((todayData.Carb / totalMacros) * 100) || 45, 
-            color: '#7C3AED' 
+          {
+            label: 'Carbs',
+            value: totalMacros > 0 ? Math.round((todayData.Carb / totalMacros) * 100) : 0,
+            color: '#7C3AED'
           },
-          { 
-            label: 'Fat', 
-            value: Math.round((todayData.Fat / totalMacros) * 100) || 30, 
-            color: '#6366F1' 
+          {
+            label: 'Fat',
+            value: totalMacros > 0 ? Math.round((todayData.Fat / totalMacros) * 100) : 0,
+            color: '#6366F1'
           }
-        ]);
+        ];
+        setNutritionData(newNutritionData);
 
         // Map the weekly data
         const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -180,23 +210,28 @@ const Analysis = () => {
         });
 
         // Update weeklyData to include calorie goal
-        setWeeklyData({
+        const newWeeklyData = {
           values: weeklyValues,
           calorieGoal: calorieGoal
-        });
-
-        // After setting the analysis data, generate the summary
-        generateSummary(analysisData, calorieGoal);
+        };
+        setWeeklyData(newWeeklyData);
 
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching analysis data:', error);
-        setIsLoading(false);
+        setDefaultValues();
       }
     };
 
     fetchData();
   }, []);
+
+  // Generate summary when data changes
+  useEffect(() => {
+    if (analysisData.length > 0 && weeklyData.calorieGoal > 0) {
+      generateSummary(analysisData, weeklyData.calorieGoal);
+    }
+  }, [analysisData, weeklyData]);
 
   return (
     <div className="w-screen h-screen flex bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 text-white overflow-hidden">
@@ -204,7 +239,7 @@ const Analysis = () => {
       <div className="flex-1 flex flex-col h-full">
         {/* Header Section - Fixed */}
         <div className="p-6 border-b border-white/10 bg-white/5 backdrop-blur-sm">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center"
@@ -223,7 +258,7 @@ const Analysis = () => {
           ) : (
             <div className="space-y-6 max-w-7xl mx-auto">
               {/* Stats Grid */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
@@ -239,9 +274,11 @@ const Analysis = () => {
                     <h3 className="text-lg font-medium text-purple-300">{item.type}</h3>
                     <div className="mt-2 flex items-end justify-between">
                       <span className="text-2xl font-semibold">{item.value}</span>
-                      <span className={`text-sm ${
-                        item.trend.startsWith('+') ? 'text-green-400' : 'text-red-400'
-                      }`}>
+                      <span
+                        className={`text-sm ${
+                          item.trend.startsWith('+') ? 'text-green-400' : 'text-red-400'
+                        }`}
+                      >
                         {item.trend}
                       </span>
                     </div>
@@ -250,7 +287,7 @@ const Analysis = () => {
               </motion.div>
 
               {/* Charts Section */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}

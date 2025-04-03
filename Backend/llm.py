@@ -44,4 +44,4 @@ def analyze_food_consumption(image_path: str, api_key: str, prompt: str) -> str:
 
 # Example usage (with image):
 image_file_path = "./images/homemade-kerala-porotta-parathalayered-flat-260nw-1885213180.webp"
-api_key = "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"
+api_key = "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"

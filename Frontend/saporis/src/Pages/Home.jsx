@@ -246,7 +246,7 @@ const Home = () => {
             const { data: existingRecord, error: fetchError } = await supabase
                 .from('Food_and_calorie_details')
                 .select('*')
-                .eq('Day', today)
+                .eq('Date', today)
                 .eq('email', userEmail)
                 .single();
 
@@ -270,7 +270,7 @@ const Home = () => {
                         Carb: parseFloat(existingRecord.Carb) + parseFloat(foodDetails.carbs),
                         Food_details: existingRecord.Food_details + '\n' + newFoodItem // Append new food item
                     })
-                    .eq('Day', today)
+                    .eq('Date', today)
                     .eq('email', userEmail);
 
                 error = updateError;
@@ -283,7 +283,7 @@ const Home = () => {
                         Protien: parseFloat(foodDetails.protein),
                         Fat: parseFloat(foodDetails.fat),
                         Carb: parseFloat(foodDetails.carbs),
-                        Day: today,
+                        Date: today,
                         Food_details: lastAnswers.split('\n')[0], // Only store the food item description
                         email: userEmail,
                         Day_in_week: dayOfWeek

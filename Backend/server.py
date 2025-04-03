@@ -153,13 +153,46 @@ async def get_nutrition_summary(data: NutritionSummaryInput):
         Weekly Calorie Trends:
         {', '.join(str(cal) for cal in data.weekly_trends)}
 
-        Please provide:
-        1. An assessment of current macronutrient balance
-        2. Comparison with calorie goals
-        3. Notable trends
-        4. Brief recommendations for improvement
-        
-        Keep the summary concise and actionable.
+        Please provide a detailed analysis including:
+
+        1. Macronutrient Balance Assessment:
+           - Evaluate the proportion of protein, carbs, and fats
+           - Compare against recommended ratios (50% carbs, 30% protein, 20% fat)
+           - Identify any significant imbalances
+
+        2. Calorie Goal Analysis:
+           - Compare current intake vs target
+           - Calculate the deficit or surplus
+           - Assess if the current trend is sustainable
+
+        3. Trend Analysis:
+           - Weekly calorie pattern analysis
+           - Identify peak and low consumption days
+           - Note any concerning patterns
+
+        4. Detailed Recommendations:
+           - Specific food suggestions to improve balance
+           - Meal timing recommendations
+           - Portion size adjustments
+           - Specific nutrients to focus on
+           - Practical tips for hitting calorie goals
+           - Strategies for maintaining consistency
+
+        5. Exercise and Lifestyle Integration:
+           - Relevant YouTube workout video recommendations based on goals
+           - Meal prep tips and recipe suggestions
+           - Quick healthy snack options
+           - Pre and post-workout nutrition advice
+
+        6. Additional Resources:
+           - 2-3 beginner-friendly workout YouTube channels
+           - 2-3 nutrition education YouTube channels
+           - Quick healthy recipe YouTube videos
+           - Links to workout routines matching their goals
+
+        Format the response in clear sections with bullet points for easy reading.
+        Keep recommendations practical and actionable.
+        Include specific food examples and portion sizes where relevant.
         """
         
         # Get response from Gemini and clean it
