@@ -476,14 +476,37 @@ const Home = () => {
         }
     };
 
-    // Add function to save food details to Supabase
+    // Improved function to save food details to Supabase with better validation and error handling
     const saveFoodDetails = async () => {
         try {
+            console.log("Starting saveFoodDetails with data:", { foodDetails, lastAnswers });
+            
+            // Validate foodDetails object
+            if (!foodDetails || typeof foodDetails !== 'object') {
+                throw new Error('Missing or invalid food details data');
+            }
+
+            // Check required fields
+            const requiredFields = ['calories', 'protein', 'fat', 'carbs'];
+            for (const field of requiredFields) {
+                if (foodDetails[field] === undefined || foodDetails[field] === null) {
+                    console.error(`Missing required field in foodDetails: ${field}`);
+                    throw new Error(`Missing nutritional data: ${field}`);
+                }
+            }
+            
             const today = new Date().toISOString().split('T')[0];
             const userEmail = localStorage.getItem('userEmail');
+            
+            if (!userEmail) {
+                throw new Error('No user email found. Please login again.');
+            }
+            
             const dayOfWeek = new Date().toLocaleString('en-US', { weekday: 'long' });
+            console.log("Date information:", { today, dayOfWeek });
 
             // First, check if there's an existing record for today
+            console.log("Checking for existing records...");
             const { data: existingRecord, error: fetchError } = await supabase
                 .from('Food_and_calorie_details')
                 .select('*')
@@ -491,45 +514,66 @@ const Home = () => {
                 .eq('email', userEmail)
                 .single();
 
+            console.log("Fetch result:", { existingRecord, fetchError });
+
             if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
                 console.error('Error fetching existing record:', fetchError);
                 throw fetchError;
             }
 
+            // Extract food details - ensure we have a valid description
+            let foodDescription = "Food item";
+            if (lastAnswers && lastAnswers.trim()) {
+                const firstLine = lastAnswers.split('\n')[0];
+                if (firstLine && firstLine.trim()) {
+                    foodDescription = firstLine.trim();
+                }
+            }
+            console.log("Food description:", foodDescription);
+
+            // Parse nutritional values safely
+            const calories = parseFloat(foodDetails.calories) || 0;
+            const protein = parseFloat(foodDetails.protein) || 0;
+            const fat = parseFloat(foodDetails.fat) || 0;
+            const carbs = parseFloat(foodDetails.carbs) || 0;
+            
+            console.log("Parsed nutritional values:", { calories, protein, fat, carbs });
+
             let error;
             if (existingRecord) {
-                // Extract food details from lastAnswers - assuming it contains the food description
-                const newFoodItem = lastAnswers.split('\n')[0]; // Get first line which typically contains the food item
-
+                console.log("Updating existing record");
                 // Update existing record
-                const { error: updateError } = await supabase
+                const { error: updateError, data: updateData } = await supabase
                     .from('Food_and_calorie_details')
                     .update({
-                        Consumed_Calorie: parseFloat(existingRecord.Consumed_Calorie) + parseFloat(foodDetails.calories),
-                        Protien: parseFloat(existingRecord.Protien) + parseFloat(foodDetails.protein),
-                        Fat: parseFloat(existingRecord.Fat) + parseFloat(foodDetails.fat),
-                        Carb: parseFloat(existingRecord.Carb) + parseFloat(foodDetails.carbs),
-                        Food_details: existingRecord.Food_details + '\n' + newFoodItem // Append new food item
+                        Consumed_Calorie: parseFloat(existingRecord.Consumed_Calorie || 0) + calories,
+                        Protien: parseFloat(existingRecord.Protien || 0) + protein,
+                        Fat: parseFloat(existingRecord.Fat || 0) + fat,
+                        Carb: parseFloat(existingRecord.Carb || 0) + carbs,
+                        Food_details: (existingRecord.Food_details ? existingRecord.Food_details + '\n' : '') + foodDescription
                     })
                     .eq('Date', today)
                     .eq('email', userEmail);
 
+                console.log("Update result:", { updateError, updateData });
                 error = updateError;
             } else {
+                console.log("Creating new record");
                 // Create new record if none exists
-                const { error: insertError } = await supabase
+                const { error: insertError, data: insertData } = await supabase
                     .from('Food_and_calorie_details')
                     .insert([{
-                        Consumed_Calorie: parseFloat(foodDetails.calories),
-                        Protien: parseFloat(foodDetails.protein),
-                        Fat: parseFloat(foodDetails.fat),
-                        Carb: parseFloat(foodDetails.carbs),
+                        Consumed_Calorie: calories,
+                        Protien: protein,
+                        Fat: fat,
+                        Carb: carbs,
                         Date: today,
-                        Food_details: lastAnswers.split('\n')[0], // Only store the food item description
+                        Food_details: foodDescription,
                         email: userEmail,
                         Day_in_week: dayOfWeek
                     }]);
 
+                console.log("Insert result:", { insertError, insertData });
                 error = insertError;
             }
 
@@ -541,6 +585,7 @@ const Home = () => {
             // Refresh daily consumption data
             const updatedConsumption = await fetchDailyConsumption();
             setDailyConsumption(updatedConsumption);
+            console.log("Updated consumption data:", updatedConsumption);
 
             // Add success message to chat
             const successMessage = {
@@ -558,7 +603,7 @@ const Home = () => {
         } catch (error) {
             console.error('Error in saveFoodDetails:', error);
             const errorMessage = {
-                text: "Sorry, I couldn't save your food details. Please try again.",
+                text: `Sorry, I couldn't save your food details: ${error.message}. Please try again or contact support if the problem persists.`,
                 sender: "bot",
                 timestamp: new Date().toLocaleTimeString(),
                 type: MESSAGE_TYPES.ERROR
